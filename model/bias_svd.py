@@ -17,13 +17,13 @@ class BiasSVD(MF):
 
     def __init__(self):
         super(BiasSVD, self).__init__()
-        self.config.lambdaB = 0.001  # 偏置项系数
+        self.config.lambdaB = 0.001  # 偏置项系数    ·超参数
         # self.init_model()
 
     def init_model(self, k):
         super(BiasSVD, self).init_model(k)
-        self.Bu = np.random.rand(self.rg.get_train_size()[0]) / (self.config.factor ** 0.5)  # bias value of user
-        self.Bi = np.random.rand(self.rg.get_train_size()[1]) / (self.config.factor ** 0.5)  # bias value of item
+        self.Bu = np.random.rand(self.rg.get_train_size()[0]) / (self.config.factor ** 0.5)  # bias value of user ·user的bias
+        self.Bi = np.random.rand(self.rg.get_train_size()[1]) / (self.config.factor ** 0.5)  # bias value of item ·item的bias
 
     def train_model(self, k):
         super(BiasSVD, self).train_model(k)
@@ -31,18 +31,18 @@ class BiasSVD(MF):
         while iteration < self.config.maxIter:
             self.loss = 0
             for index, line in enumerate(self.rg.trainSet()):
-                user, item, rating = line
+                user, item, rating = line   #line是数据
                 u = self.rg.user[user]
                 i = self.rg.item[item]
-                error = rating - self.predict(user, item)
-                self.loss += error ** 2
-                p, q = self.P[u], self.Q[i]
+                error = rating - self.predict(user, item)  #eui = rui - rui_estimate
+                self.loss += error ** 2 #损失函数
+                p, q = self.P[u], self.Q[i] #latent vector 应该是向量
                 # update latent vectors
 
-                self.Bu[u] += self.config.lr * (error - self.config.lambdaB * self.Bu[u])
+                self.Bu[u] += self.config.lr * (error - self.config.lambdaB * self.Bu[u]) #bu和bi是个体打分情况的偏差bias
                 self.Bi[i] += self.config.lr * (error - self.config.lambdaB * self.Bi[i])
 
-                self.P[u] += self.config.lr * (error * q - self.config.lambdaP * p)
+                self.P[u] += self.config.lr * (error * q - self.config.lambdaP * p) #随机梯度下降
                 self.Q[i] += self.config.lr * (error * p - self.config.lambdaQ * q)
 
             self.loss += self.config.lambdaP * (self.P * self.P).sum() + self.config.lambdaQ * (self.Q * self.Q).sum() \
@@ -56,7 +56,7 @@ class BiasSVD(MF):
         if self.rg.containsUser(u) and self.rg.containsItem(i):
             u = self.rg.user[u]
             i = self.rg.item[i]
-            return self.P[u].dot(self.Q[i]) + self.rg.globalMean + self.Bi[i] + self.Bu[u]
+            return self.P[u].dot(self.Q[i]) + self.rg.globalMean + self.Bi[i] + self.Bu[u] #rui_estimate = u +bi + bu + qiTpu
         else:
             return self.rg.globalMean
 
